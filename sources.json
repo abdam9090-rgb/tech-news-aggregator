@@ -7,45 +7,33 @@
       "enabled": true
     },
     {
-      "name": "Ars Technica Gadgets & Tech",
+      "name": "Ars Technica Tech",
       "category": "tech",
       "rss_url": "https://feeds.arstechnica.com/arstechnica/gadgets",
       "enabled": true
     },
     {
-      "name": "Ghacks Tech News",
+      "name": "Ghacks Technology",
       "category": "tech",
       "rss_url": "https://www.ghacks.net/feed/",
       "enabled": true
     },
     {
-      "name": "BetaNews Software & OS",
-      "category": "software",
-      "rss_url": "https://betanews.com/feed/",
-      "enabled": true
-    },
-    {
-      "name": "AlternativeTo - Open Source & Apps",
+      "name": "AlternativeTo Open Source & Apps",
       "category": "software",
       "rss_url": "https://alternativeto.net/news/feed/",
       "enabled": true
     },
     {
-      "name": "MajorGeeks Freeware & Releases",
+      "name": "BetaNews Software Releases",
+      "category": "software",
+      "rss_url": "https://betanews.com/feed/",
+      "enabled": true
+    },
+    {
+      "name": "MajorGeeks Freeware Releases",
       "category": "software",
       "rss_url": "https://www.majorgeeks.com/files/rss",
-      "enabled": true
-    },
-    {
-      "name": "SharewareOnSale Deals",
-      "category": "deals",
-      "rss_url": "https://sharewareonsale.com/feed",
-      "enabled": true
-    },
-    {
-      "name": "GiveawayOfTheDay Licenses",
-      "category": "deals",
-      "rss_url": "https://www.giveawayoftheday.com/feed/",
       "enabled": true
     }
   ]
