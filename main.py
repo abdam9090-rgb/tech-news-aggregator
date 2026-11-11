@@ -4,6 +4,7 @@ import hashlib
 import html
 import requests
 import feedparser
+from groq import Groq
 
 PROCESSED_FILE = "processed_deals.json"
 SOURCES_FILE = "sources.json"
@@ -31,12 +32,13 @@ def save_json(filepath, data):
 
 def is_duplicate(link, processed_list):
     link_hash = hashlib.sha256(link.strip().encode('utf-8')).hexdigest()
-    if link_hash in processed_list:
-        return True
+    return link_hash in processed_list
+
+def mark_as_processed(link, processed_list):
+    link_hash = hashlib.sha256(link.strip().encode('utf-8')).hexdigest()
     processed_list.append(link_hash)
     if len(processed_list) > MAX_STORED_HASHES:
         del processed_list[0]
-    return False
 
 def generate_seo_article(title, summary, link, source_name):
     prompt = f"""
@@ -58,32 +60,24 @@ def generate_seo_article(title, summary, link, source_name):
 6. فقرة ختامية تتضمن رابط المصدر الرسمي بوضوح.
 7. لغة عربية صحفية سليمة، بدون ترجمة ركيكة وبمحتوى فريد يراعي معايير Google Helpful Content.
 """
-    api_url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {AI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {
-                "role": "system",
-                "content": "أنت صحفي تقني محترف وخبير في تحسين محركات البحث (SEO) وكتابة المقالات الحصرية باللغة العربية."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        "temperature": 0.6,
-        "max_tokens": 2048
-    }
-    
     try:
-        res = requests.post(api_url, headers=headers, json=payload, timeout=45)
-        res.raise_for_status()
-        data = res.json()
-        return data['choices'][0]['message']['content']
+        client = Groq(api_key=AI_API_KEY)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "أنت صحفي تقني محترف وخبير في تحسين محركات البحث (SEO) وكتابة المقالات الحصرية باللغة العربية."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.6,
+            max_tokens=2048
+        )
+        return response.choices[0].message.content
     except Exception as e:
         print(f"[!] خطأ أثناء استدعاء الذكاء الاصطناعي (Groq): {e}")
         return None
@@ -175,7 +169,6 @@ def main():
                 continue
                 
             if is_duplicate(link, processed):
-                print(f"[-] تم تجاهل الرابط (مكرر): {title[:40]}...")
                 continue
                 
             print(f"[+] تم رصد محتوى جديد: {title}")
@@ -184,11 +177,12 @@ def main():
             
             if article:
                 send_to_telegram(article, link, source_name)
-                print(f"[+] تم إرسال المقال إلى تيليجرام بنجاح.")
+                mark_as_processed(link, processed)
+                print(f"[+] تم إرسال المقال إلى تيليجرام بنجاح وحفظ الرابط.")
                 new_found = True
                 break
             else:
-                print(f"[!] فشل توليد المقال عبر Groq.")
+                print(f"[!] فشل توليد المقال عبر Groq، لن يتم حفظ الرابط لإعادة المحاولة.")
         if new_found:
             break
 
