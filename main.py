@@ -13,7 +13,7 @@ AI_API_KEY = os.getenv("GROQ_API_KEY")
 TG_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TG_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 def load_json(filepath, default):
     if os.path.exists(filepath):
@@ -149,6 +149,7 @@ def main():
     config = load_json(SOURCES_FILE, {"sources": []})
     processed = load_json(PROCESSED_FILE, [])
     
+    print(f"[*] عدد الروابط المعالجة سابقاً في الذاكرة: {len(processed)}")
     print("[*] بدء فحص مصادر الأخبار والعروض...")
     new_found = False
 
@@ -170,7 +171,11 @@ def main():
             title = entry.get("title", "").strip()
             summary = entry.get("summary", "") or entry.get("description", "")
             
-            if not link or is_duplicate(link, processed):
+            if not link:
+                continue
+                
+            if is_duplicate(link, processed):
+                print(f"[-] تم تجاهل الرابط (مكرر): {title[:40]}...")
                 continue
                 
             print(f"[+] تم رصد محتوى جديد: {title}")
@@ -182,6 +187,8 @@ def main():
                 print(f"[+] تم إرسال المقال إلى تيليجرام بنجاح.")
                 new_found = True
                 break
+            else:
+                print(f"[!] فشل توليد المقال عبر Groq.")
         if new_found:
             break
 
