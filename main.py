@@ -16,6 +16,14 @@ TG_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
+CANDIDATE_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "llama-3.1-8b-instant",
+    "allam-2-7b"
+]
+
 def load_json(filepath, default):
     if os.path.exists(filepath):
         try:
@@ -40,6 +48,20 @@ def mark_as_processed(link, processed_list):
     if len(processed_list) > MAX_STORED_HASHES:
         del processed_list[0]
 
+def get_best_available_model(client):
+    try:
+        available = [m.id for m in client.models.list().data]
+        for candidate in CANDIDATE_MODELS:
+            if candidate in available:
+                return candidate
+        # في حال وجود نماذج دردشة أخرى متاحة
+        for m_id in available:
+            if not any(x in m_id for x in ["whisper", "guard", "embed", "tts"]):
+                return m_id
+    except Exception as e:
+        print(f"[!] تعذر جلب قائمة النماذج تلقائياً: {e}")
+    return "openai/gpt-oss-120b"
+
 def generate_seo_article(title, summary, link, source_name):
     prompt = f"""
 بيانات المصدر:
@@ -62,8 +84,11 @@ def generate_seo_article(title, summary, link, source_name):
 """
     try:
         client = Groq(api_key=AI_API_KEY)
+        chosen_model = get_best_available_model(client)
+        print(f"[*] النموذج المختار للتوليد: {chosen_model}")
+
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=chosen_model,
             messages=[
                 {
                     "role": "system",
