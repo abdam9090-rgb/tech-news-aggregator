@@ -14,6 +14,7 @@ MAX_STORED_HASHES = 1000
 AI_API_KEY = os.getenv("GROQ_API_KEY")
 TG_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TG_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
+TARGET_CATEGORY = os.getenv("TARGET_CATEGORY", "all").strip().lower()
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
@@ -71,16 +72,16 @@ def generate_seo_article(title, summary, link, source_name):
 - الرابط المرجعي: {link}
 
 المتطلبات الإلزامية لصياغة المقال:
-1. عنوان رئيسي جذاب يتضمن اسم البرنامج أو الأداة وكلمة دلالية متوافقة مع السيو (SEO).
-2. كتابة ملخص قصير (Meta Description) في السطر الأول بعد العنوان مباشرة.
-3. مقدمة أصيلة تشرح ما تقدمه هذه الأداة وقيمتها للمستخدم.
+1. عنوان رئيسي جذاب يتضمن اسم البرنامج أو التقنية وكلمة دلالية متوافقة مع السيو (SEO).
+2. ملخص قصير (Meta Description) في السطر الأول بعد العنوان مباشرة.
+3. مقدمة أصيلة تشرح ما يقدمه هذا التحديث أو التطبيق وقيمته للمستخدم.
 4. أقسام واضحة بعناوين فرعية:
-   - ما الذي تقدمه هذه الأداة / التحديث؟
-   - أبرز الميزات والوظائف الجديدة.
-   - طريقة الحصول على العرض أو التفعيل أو التحميل بالخطوات.
-5. جدول أو نقاط مختصرة بالمتطلبات ونوع الترخيص أو الأنظمة المدعومة.
+   - نظرة عامة وما الجديد في هذا التحديث / التطبيق؟
+   - أبرز الميزات والوظائف.
+   - طريقة الاستخدام أو التحميل أو التفعيل بالخطوات.
+5. جدول أو نقاط مختصرة بالمتطلبات ونوع الترخيص والأنظمة المدعومة.
 6. فقرة ختامية تتضمن رابط المصدر الرسمي بوضوح.
-7. لغة عربية صحفية سليمة، بدون ترجمة ركيكة وبمحتوى فريد يراعي معايير Google Helpful Content.
+7. لغة عربية صحفية سليمة، بدون ترجمة ركيكة وبمحتوى حصري يلائم معايير Google Helpful Content.
 """
     try:
         client = Groq(api_key=AI_API_KEY)
@@ -90,14 +91,8 @@ def generate_seo_article(title, summary, link, source_name):
         response = client.chat.completions.create(
             model=chosen_model,
             messages=[
-                {
-                    "role": "system",
-                    "content": "أنت صحفي تقني محترف وخبير في تحسين محركات البحث (SEO) وكتابة المقالات الحصرية باللغة العربية."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "أنت صحفي تقني محترف وخبير في السيو ومراجعة البرمجيات باللغة العربية."},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.6,
             max_tokens=2048
@@ -168,12 +163,21 @@ def main():
     config = load_json(SOURCES_FILE, {"sources": []})
     processed = load_json(PROCESSED_FILE, [])
     
-    active_sources = [s for s in config.get("sources", []) if s.get("enabled", True)]
-    # خلط ترتيب المصادر عشوائياً في كل تشغيل لضمان تنوع المقالات
-    random.shuffle(active_sources)
+    # تصفية المصادر بحسب التصنيف المطلوب
+    all_sources = config.get("sources", [])
+    if TARGET_CATEGORY != "all":
+        active_sources = [s for s in all_sources if s.get("enabled", True) and s.get("category") == TARGET_CATEGORY]
+        print(f"[*] تصفية المصادر بحسب التصنيف: [{TARGET_CATEGORY}] (عدد المصادر: {len(active_sources)})")
+    else:
+        active_sources = [s for s in all_sources if s.get("enabled", True)]
+        print(f"[*] فحص جميع المصادر المتاحة دون تصفية (عدد المصادر: {len(active_sources)})")
 
+    if not active_sources:
+        print("[!] لم يتم العثور على مصادر مطابقة للتصنيف المطلوب.")
+        return
+
+    random.shuffle(active_sources)
     print(f"[*] عدد الروابط المعالجة سابقاً في الذاكرة: {len(processed)}")
-    print("[*] بدء فحص مصادر الأخبار والعروض (بترتيب عشوائي)...")
     new_found = False
 
     for source in active_sources:
@@ -191,10 +195,7 @@ def main():
             title = entry.get("title", "").strip()
             summary = entry.get("summary", "") or entry.get("description", "")
             
-            if not link:
-                continue
-                
-            if is_duplicate(link, processed):
+            if not link or is_duplicate(link, processed):
                 continue
                 
             print(f"[+] تم رصد محتوى جديد: {title}")
@@ -208,7 +209,7 @@ def main():
                 new_found = True
                 break
             else:
-                print(f"[!] فشل توليد المقال عبر Groq، لن يتم حفظ الرابط لإعادة المحاولة.")
+                print(f"[!] فشل توليد المقال عبر Groq.")
         if new_found:
             break
 
