@@ -13,6 +13,8 @@ AI_API_KEY = os.getenv("GROQ_API_KEY")
 TG_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TG_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+
 def load_json(filepath, default):
     if os.path.exists(filepath):
         try:
@@ -129,6 +131,16 @@ def send_to_telegram(article_text, original_link, source_name):
             requests.post(url, json=payload, timeout=20)
     return True
 
+def fetch_feed_safely(url):
+    try:
+        headers = {"User-Agent": USER_AGENT}
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code == 200:
+            return feedparser.parse(resp.content)
+    except Exception as e:
+        print(f"[!] تعذر جلب الرابط {url}: {e}")
+    return None
+
 def main():
     if not AI_API_KEY:
         print("[!] خطأ: مفتاح GROQ_API_KEY غير موجود.")
@@ -148,7 +160,11 @@ def main():
         source_name = source.get("name")
         print(f"[*] فحص المصدر: {source_name}")
         
-        feed = feedparser.parse(rss_url)
+        feed = fetch_feed_safely(rss_url)
+        if not feed or not feed.entries:
+            print(f"[!] تم تخطي {source_name} لعدم توفر خلاصات حالياً.")
+            continue
+
         for entry in feed.entries[:3]:
             link = entry.get("link", "").strip()
             title = entry.get("title", "").strip()
@@ -158,7 +174,7 @@ def main():
                 continue
                 
             print(f"[+] تم رصد محتوى جديد: {title}")
-            print("[*] جاري توليد المقال الحصري عبر Groq (Llama 3.3 70B)...")
+            print("[*] جاري توليد المقال الحصري عبر Groq...")
             article = generate_seo_article(title, summary, link, source_name)
             
             if article:
