@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import html
+import random
 import requests
 import feedparser
 from groq import Groq
@@ -54,7 +55,6 @@ def get_best_available_model(client):
         for candidate in CANDIDATE_MODELS:
             if candidate in available:
                 return candidate
-        # في حال وجود نماذج دردشة أخرى متاحة
         for m_id in available:
             if not any(x in m_id for x in ["whisper", "guard", "embed", "tts"]):
                 return m_id
@@ -168,14 +168,15 @@ def main():
     config = load_json(SOURCES_FILE, {"sources": []})
     processed = load_json(PROCESSED_FILE, [])
     
+    active_sources = [s for s in config.get("sources", []) if s.get("enabled", True)]
+    # خلط ترتيب المصادر عشوائياً في كل تشغيل لضمان تنوع المقالات
+    random.shuffle(active_sources)
+
     print(f"[*] عدد الروابط المعالجة سابقاً في الذاكرة: {len(processed)}")
-    print("[*] بدء فحص مصادر الأخبار والعروض...")
+    print("[*] بدء فحص مصادر الأخبار والعروض (بترتيب عشوائي)...")
     new_found = False
 
-    for source in config.get("sources", []):
-        if not source.get("enabled", True):
-            continue
-            
+    for source in active_sources:
         rss_url = source.get("rss_url")
         source_name = source.get("name")
         print(f"[*] فحص المصدر: {source_name}")
@@ -197,7 +198,7 @@ def main():
                 continue
                 
             print(f"[+] تم رصد محتوى جديد: {title}")
-            print("[*] جاري توليد المقال الحصري عبر Groq...")
+            print(f"[*] جاري توليد المقال الحصري من ({source_name})...")
             article = generate_seo_article(title, summary, link, source_name)
             
             if article:
