@@ -1,6 +1,18 @@
 {
   "sources": [
     {
+      "name": "BleepingComputer Tech & Security",
+      "category": "tech",
+      "rss_url": "https://www.bleepingcomputer.com/feed/",
+      "enabled": true
+    },
+    {
+      "name": "Ars Technica Gadgets & Tech",
+      "category": "tech",
+      "rss_url": "https://feeds.arstechnica.com/arstechnica/gadgets",
+      "enabled": true
+    },
+    {
       "name": "Ghacks Tech News",
       "category": "tech",
       "rss_url": "https://www.ghacks.net/feed/",
@@ -8,7 +20,7 @@
     },
     {
       "name": "BetaNews Software & OS",
-      "category": "tech",
+      "category": "software",
       "rss_url": "https://betanews.com/feed/",
       "enabled": true
     },

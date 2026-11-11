@@ -63,35 +63,63 @@ def get_best_available_model(client):
         print(f"[!] تعذر جلب قائمة النماذج تلقائياً: {e}")
     return "openai/gpt-oss-120b"
 
-def generate_seo_article(title, summary, link, source_name):
+def generate_seo_article(title, summary, link, source_name, category):
+    if category == "tech":
+        prompt_style = """
+نوع المقال المطلوب: [تقرير إخباري وتقني حصري]
+المتطلبات:
+1. صياغة عنوان إخباري شيق يتناول الحدث أو التحديث التقني (بدون أسلوب ترويجي أو تجاري).
+2. ملخص إخباري سريع في السطر الأول بعد العنوان.
+3. تفاصيل الخبر وما أعلنته الشركة أو كشف عنه التقرير.
+4. التأثير التقني لهذا التطور وأهميته للمستخدمين وصناع القرار.
+5. فقرة ختامية توثق المصدر التقني الرسمي.
+تنبيه: تجنب تماماً أسلوب العروض أو الشراء أو التخفيضات.
+"""
+    elif category == "software":
+        prompt_style = """
+نوع المقال المطلوب: [مراجعة أداة / برنامج كمبيوتر وتطبيق]
+المتطلبات:
+1. عنوان احترافي يوضح اسم البرنامج ووظيفته الأساسية وما يميزه.
+2. ملخص عن مهام الأداة في السطر الأول.
+3. أبرز ما تقدمه الأداة، المميزات الجديدة في هذا الإصدار، ولماذا قد يحتاجها المستخدم.
+4. الأنظمة المدعومة (ويندوز، لينكس، أندرويد...) وطبيعة الرخصة (مجاني، مفتوح المصدر...).
+5. خاتمة تتضمن رابط التنزيل أو المصدر الرسمي.
+"""
+    else:
+        prompt_style = """
+نوع المقال المطلوب: [عرض وتخفيضات برمجية مجانية]
+المتطلبات:
+1. عنوان جذاب يوضح العرض والخصم أو الترخيص المجاني المتاح.
+2. ملخص يوضح القيمة الموفرة.
+3. مميزات البرنامج وكيفية الاستفادة من العرض خطوة بخطوة.
+4. مدة الصلاحية أو متطلبات الحصول عليه.
+5. رابط العرض الرسمي.
+"""
+
     prompt = f"""
 بيانات المصدر:
 - المصدر: {source_name}
+- التصنيف: {category}
 - العنوان الأصلي: {title}
 - التفاصيل والملخص: {summary}
 - الرابط المرجعي: {link}
 
-المتطلبات الإلزامية لصياغة المقال:
-1. عنوان رئيسي جذاب يتضمن اسم البرنامج أو التقنية وكلمة دلالية متوافقة مع السيو (SEO).
-2. ملخص قصير (Meta Description) في السطر الأول بعد العنوان مباشرة.
-3. مقدمة أصيلة تشرح ما يقدمه هذا التحديث أو التطبيق وقيمته للمستخدم.
-4. أقسام واضحة بعناوين فرعية:
-   - نظرة عامة وما الجديد في هذا التحديث / التطبيق؟
-   - أبرز الميزات والوظائف.
-   - طريقة الاستخدام أو التحميل أو التفعيل بالخطوات.
-5. جدول أو نقاط مختصرة بالمتطلبات ونوع الترخيص والأنظمة المدعومة.
-6. فقرة ختامية تتضمن رابط المصدر الرسمي بوضوح.
-7. لغة عربية صحفية سليمة، بدون ترجمة ركيكة وبمحتوى حصري يلائم معايير Google Helpful Content.
+{prompt_style}
+
+معايير الجودة:
+- لغة عربية صحفية سليمة ورصينة تلائم معايير Google Helpful Content.
+- محتوى غني ومنسق بعناوين واضحة وفقرات منظمة.
 """
+
     try:
         client = Groq(api_key=AI_API_KEY)
         chosen_model = get_best_available_model(client)
-        print(f"[*] النموذج المختار للتوليد: {chosen_model}")
+        print(f"[*] النموذج المختار: {chosen_model} | التصنيف: {category}")
 
         response = client.chat.completions.create(
             model=chosen_model,
             messages=[
-                {"role": "system", "content": "أنت صحفي تقني محترف وخبير في السيو ومراجعة البرمجيات باللغة العربية."},
+                {"role": "system", "content": "أنت محرر تقني وصحفي محترف متخصص في صياغة المقالات والأخبار الحصرية باللغة العربية."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.6,
@@ -116,14 +144,17 @@ def split_text_smartly(text, max_len=3500):
         chunks.append(current_chunk)
     return chunks
 
-def send_to_telegram(article_text, original_link, source_name):
+def send_to_telegram(article_text, original_link, source_name, category):
     if not TG_BOT_TOKEN or not TG_CHANNEL_ID:
         print("[!] بيانات تيليجرام غير متوفرة.")
         return False
         
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
+    
+    badge = "⚡ <b>خبر وتقنية</b>" if category == "tech" else ("💾 <b>برامج وتطبيقات</b>" if category == "software" else "🎁 <b>عرض وتخفيض</b>")
+    
     header = (
-        f"📝 <b>مسودة مقال تقني جديد للمراجعة</b>\n"
+        f"{badge}\n"
         f"🌐 <b>المصدر:</b> {html.escape(source_name)}\n"
         f"🔗 <b>الرابط الأصلي:</b> <a href=\"{html.escape(original_link)}\">انقر هنا</a>\n"
         f"────────────────────\n\n"
@@ -163,31 +194,29 @@ def main():
     config = load_json(SOURCES_FILE, {"sources": []})
     processed = load_json(PROCESSED_FILE, [])
     
-    # تصفية المصادر بحسب التصنيف المطلوب
     all_sources = config.get("sources", [])
     if TARGET_CATEGORY != "all":
         active_sources = [s for s in all_sources if s.get("enabled", True) and s.get("category") == TARGET_CATEGORY]
-        print(f"[*] تصفية المصادر بحسب التصنيف: [{TARGET_CATEGORY}] (عدد المصادر: {len(active_sources)})")
+        print(f"[*] تصفية المصادر للتصنيف: [{TARGET_CATEGORY}] (عدد المصادر: {len(active_sources)})")
     else:
         active_sources = [s for s in all_sources if s.get("enabled", True)]
-        print(f"[*] فحص جميع المصادر المتاحة دون تصفية (عدد المصادر: {len(active_sources)})")
+        print(f"[*] فحص جميع المصادر (عدد المصادر: {len(active_sources)})")
 
     if not active_sources:
-        print("[!] لم يتم العثور على مصادر مطابقة للتصنيف المطلوب.")
+        print("[!] لم يتم العثور على مصادر مطابقة.")
         return
 
     random.shuffle(active_sources)
-    print(f"[*] عدد الروابط المعالجة سابقاً في الذاكرة: {len(processed)}")
     new_found = False
 
     for source in active_sources:
         rss_url = source.get("rss_url")
         source_name = source.get("name")
+        source_category = source.get("category", "tech")
         print(f"[*] فحص المصدر: {source_name}")
         
         feed = fetch_feed_safely(rss_url)
         if not feed or not feed.entries:
-            print(f"[!] تم تخطي {source_name} لعدم توفر خلاصات حالياً.")
             continue
 
         for entry in feed.entries[:3]:
@@ -198,23 +227,21 @@ def main():
             if not link or is_duplicate(link, processed):
                 continue
                 
-            print(f"[+] تم رصد محتوى جديد: {title}")
-            print(f"[*] جاري توليد المقال الحصري من ({source_name})...")
-            article = generate_seo_article(title, summary, link, source_name)
+            print(f"[+] تم رصد مادة جديدة: {title}")
+            print(f"[*] جاري توليد المقال بأسلوب ({source_category})...")
+            article = generate_seo_article(title, summary, link, source_name, source_category)
             
             if article:
-                send_to_telegram(article, link, source_name)
+                send_to_telegram(article, link, source_name, source_category)
                 mark_as_processed(link, processed)
-                print(f"[+] تم إرسال المقال إلى تيليجرام بنجاح وحفظ الرابط.")
+                print(f"[+] تم الإرسال بنجاح.")
                 new_found = True
                 break
-            else:
-                print(f"[!] فشل توليد المقال عبر Groq.")
         if new_found:
             break
 
     save_json(PROCESSED_FILE, processed)
-    print("[*] اكتملت الدورة الحالية بنجاح.")
+    print("[*] اكتملت الدورة بنجاح.")
 
 if __name__ == "__main__":
     main()
