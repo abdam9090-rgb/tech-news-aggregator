@@ -43,7 +43,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          TARGET_CATEGORY: ${{ github.event.inputs.category || 'all' }}
+          TARGET_CATEGORY: ${{ inputs.category }}
         run: |
           python main.py
 

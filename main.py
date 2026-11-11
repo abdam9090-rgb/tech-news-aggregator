@@ -14,7 +14,7 @@ MAX_STORED_HASHES = 1000
 AI_API_KEY = os.getenv("GROQ_API_KEY")
 TG_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TG_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
-TARGET_CATEGORY = os.getenv("TARGET_CATEGORY", "all").strip().lower()
+TARGET_CATEGORY = (os.getenv("TARGET_CATEGORY") or "").strip().lower() or "all"
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
