@@ -25,9 +25,9 @@
       "enabled": true
     },
     {
-      "name": "BetaNews Software Releases",
+      "name": "F-Droid Free Android Apps",
       "category": "software",
-      "rss_url": "https://betanews.com/feed/",
+      "rss_url": "https://f-droid.org/en/feed.xml",
       "enabled": true
     },
     {
